@@ -1,8 +1,6 @@
 # Unetic CLI
 
-The local Ratatui interface for managing Unetic over ubus from an OpenWrt SSH
-session. It relies on the local system boundary and does not implement web
-authentication.
+Local terminal client for managing Unetic from an OpenWrt SSH session.
 
 Repository: <https://github.com/Unetic/unetic-cli>
 
@@ -10,21 +8,18 @@ Repository: <https://github.com/Unetic/unetic-cli>
 
 ```sh
 nix develop
-cargo test
-cargo clippy --all-targets --all-features -- -D warnings
+cargo fmt --check
+cargo clippy --locked --all-targets --all-features -- -D warnings
+cargo test --locked --all-targets --all-features
+cargo build --locked --release --all-features
 ```
 
-## OpenWrt package
+Normal pushes and pull requests run CI only; they do not publish APKs or releases.
 
-CI smoke-tests `unetic-cli` with the pinned OpenWrt 25.12.5 x86/64 SDK. Builds
-for a router must select its actual OpenWrt SDK target. The version comes from
-`Cargo.toml`; tagged releases such as `v0.1.0` attach the APK.
+## Release
 
-Install a downloaded development artifact with:
+A tag `vX.Y.Z` must match the version in `Cargo.toml`. After mandatory CI succeeds, the release workflow builds `unetic-cli` for every OpenWrt target in `Unetic/packages/config/targets.json` and attaches those binaries plus `SHA256SUMS` to the component GitHub Release.
 
-```sh
-scp unetic-cli-*.apk root@router:/tmp/
-ssh root@router 'apk --allow-untrusted add /tmp/unetic-cli-*.apk && rm -f /tmp/unetic-cli-*.apk'
-```
+`Unetic/packages` later consumes the same-tag binaries without rebuilding Rust and installs the released binary into the APK as `/usr/bin/unetic`.
 
-The package installs the command as `/usr/bin/unetic`.
+The final signed APK repository and APK release assets are published only by `Unetic/packages`.
