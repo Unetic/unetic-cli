@@ -1,6 +1,6 @@
 [package]
 name = "unetic-cli"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2024"
 description = "Terminal interface for the Unetic OpenWrt control plane"
 repository = "https://github.com/Unetic/unetic-cli"
