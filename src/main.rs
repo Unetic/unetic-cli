@@ -10,6 +10,7 @@ fn main() -> Result<()> {
     match command {
         "status" => show_status(),
         "switch" => show_switch(),
+        "system" => show_system(),
         "wifi" => {
             let ssid = args.get(2).context("usage: unetic wifi <ssid>")?;
             set_wifi(ssid)
@@ -36,6 +37,7 @@ fn print_help() {
     println!("Unetic CLI — OpenWrt Control Plane");
     println!("Usage:");
     println!("  unetic status         Show current router status");
+    println!("  unetic system         Show System information (uptime, load, memory)");
     println!("  unetic switch         Show Switch SoC and hardware capabilities");
     println!("  unetic wifi <ssid>    Change Wi-Fi SSID");
     println!("  unetic json <method>  Call raw ubus method");
@@ -146,6 +148,44 @@ fn show_switch() -> Result<()> {
             println!("  {name:<28} {status_badge}");
         }
     }
+    println!("─────────────────────────────────────────────────");
+
+    Ok(())
+}
+
+fn show_system() -> Result<()> {
+    let raw = call_ubus("system.info", "{}")?;
+    let val: Value = serde_json::from_str(&raw)?;
+    let res = val.get("result").unwrap_or(&val);
+
+    let hostname = res.get("hostname").and_then(Value::as_str).unwrap_or("-");
+    let model = res.get("model").and_then(Value::as_str).unwrap_or("-");
+    let target = res.get("target").and_then(Value::as_str).unwrap_or("-");
+    let kernel = res.get("kernel_version").and_then(Value::as_str).unwrap_or("-");
+    let fw_ver = res.get("firmware_version").and_then(Value::as_str).unwrap_or("-");
+    let fw_rev = res.get("firmware_revision").and_then(Value::as_str).unwrap_or("-");
+    let uptime = res.get("uptime_secs").and_then(Value::as_u64).unwrap_or(0);
+    
+    let load = res.get("load_average").and_then(Value::as_array).map(|a| {
+        format!("{:.2} {:.2} {:.2}", 
+            a.get(0).and_then(Value::as_f64).unwrap_or(0.0),
+            a.get(1).and_then(Value::as_f64).unwrap_or(0.0),
+            a.get(2).and_then(Value::as_f64).unwrap_or(0.0)
+        )
+    }).unwrap_or_else(|| "-".to_string());
+
+    let mem_total = res.get("memory_total_kb").and_then(Value::as_u64).unwrap_or(0);
+    let mem_avail = res.get("memory_available_kb").and_then(Value::as_u64).unwrap_or(0);
+
+    println!("── System Information ───────────────────────────");
+    println!("Hostname    : {hostname}");
+    println!("Model       : {model}");
+    println!("Target      : {target}");
+    println!("Firmware    : {fw_ver} ({fw_rev})");
+    println!("Kernel      : {kernel}");
+    println!("Uptime      : {}s", uptime);
+    println!("Load Avg    : {load}");
+    println!("Memory      : {} MB available / {} MB total", mem_avail / 1024, mem_total / 1024);
     println!("─────────────────────────────────────────────────");
 
     Ok(())
