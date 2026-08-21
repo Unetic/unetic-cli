@@ -115,12 +115,12 @@ fn show_switch() -> Result<()> {
     let ports = soc
         .get("ports")
         .and_then(Value::as_array)
-        .cloned()
+        .map(Vec::as_slice)
         .unwrap_or_default();
 
     let ports_str = ports
         .iter()
-        .filter_map(Value::as_str)
+        .filter_map(|v| v.as_str())
         .collect::<Vec<_>>()
         .join(", ");
 
